@@ -21,10 +21,12 @@ Or install it yourself as:
 ## Usage
 
 The basic workflow is that you set your heroku application name like so:
-$ h app app_name
 
-And then you can run the following commands without having to specify your app name:
+	$ h app app_name
 
+And then you can run the other commands without having to specify your app name
+
+Commit and deploy:
 h deploy MESSAGE   Runs git add, commit, push origin master, and push heroku
 h secrets          Shares your app secrets in config/secrets.yml with your Heroku app
 h log              Tails the Heroku log file plus the last 200 lines
