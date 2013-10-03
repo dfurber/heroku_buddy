@@ -16,11 +16,11 @@ if File.exists?(dot_file_name)
   end
 else
 end
-app_name = config['app_name']
 
+app_name = config['app_name']
 git_branch = `git branch | sed -n '/\* /s///p'` || 'master'
 
-def exec_command_with_app_name(cmd)
+def exec_command_with_app_name(cmd, app_name)
   cmd << " --app #{app_name}" if app_name
   `#{cmd}`
 end
@@ -51,19 +51,19 @@ when 'deploy'
   
 when 'migrate'
   puts "Migrating the database on Heroku...\n"
-  exec_command_with_app_name 'heroku run rake db:migrate'
+  exec_command_with_app_name 'heroku run rake db:migrate', app_name
 
 when 'seed'
   puts "Seeding the database on Heroku...\n"
-  exec_command_with_app_name 'heroku run rake db:seed'
+  exec_command_with_app_name 'heroku run rake db:seed', app_name
   
 when 'console'
   puts "Running the console on Heroku...\n"
-  exec_command_with_app_name 'heroku run console'
+  exec_command_with_app_name 'heroku run console', app_name
 
 when 'log'
   puts "Tailing the log on Heroku...\n"
-  exec_command_with_app_name 'heroku logs --source app --num 100 --tail'
+  exec_command_with_app_name 'heroku logs --source app --num 100 --tail', app_name
 
 when 'secrets'
   puts "Sharing your app secrets with Heroku...\n"
@@ -95,5 +95,7 @@ else
   msg += "h secrets          Shares your app secrets in config/secrets.yml with your Heroku app\n"
   msg += "h log              Tails the Heroku log file plus the last 200 lines\n"
   msg += "h console          Brings up the Rails console for your Heroku app\n"
+  msg += "h migrate          Runs rake db:migrate on the Heroku database\n"
+  msg += "h seed             Runs rake db:seed on the Heroku database\n"
   puts msg
 end
