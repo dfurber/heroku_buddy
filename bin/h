@@ -111,7 +111,15 @@ when 'dm'
   deploy
   migrate
   exec_command_with_app_name 'heroku maintenance:off', app_name
-  
+
+when 'rake'
+  puts "Running rake task.\n"
+  task = ARGV.shift
+  if task.blank?
+    puts "No task specified!\n"
+  else
+    exec_command_with_app_name "heroku run rake #{task}", app_name
+  end
 else
   msg = "This is the easy access script for common Heroku commands. \nThe following commands are available: \n"
   msg += "h app APP_NAME     Set the app name for subsequent h commands\n"
@@ -122,5 +130,6 @@ else
   msg += "h migrate          Runs rake db:migrate on the Heroku database\n"
   msg += "h seed             Runs rake db:seed on the Heroku database\n"
   msg += "h dm MESSAGE       Runs deploy and migrate in maintenance mode\n"
+  msg += "h rake TASK        Runs rake task\n"
   puts msg
 end
