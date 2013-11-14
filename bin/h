@@ -2,12 +2,13 @@
 
 require 'json'
 
+DOT_FILE_NAME = '.h_file'
+
 command = ARGV.shift
 
-config = { 'app_name' => nil }
-dot_file_name = '.h_file'
-if File.exists?(dot_file_name) 
-  contents = File.open(dot_file_name).read
+config = { 'app_name' =DOT_FILE_NAME> nil }
+if File.exists?(DOT_FILE_NAME) 
+  contents = File.open(DOT_FILE_NAME).read
   if contents.size > 0
     config = JSON.parse contents
   end
@@ -32,7 +33,7 @@ def set_app
     config['app_name'] = nil
     puts "Unset heroku app.\n"
   end
-  File.open(dot_file_name, File::WRONLY|File::CREAT) { |file| file.write config.to_json }
+  File.open(DOT_FILE_NAME, File::WRONLY|File::CREAT) { |file| file.write config.to_json }
 end
 
 def deploy
