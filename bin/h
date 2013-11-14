@@ -23,6 +23,7 @@ def exec_command_with_app_name(cmd, app_name)
 end
 
 def set_app
+  config ||= {}
   app_name = ARGV.shift
   if app_name
     config['app_name'] = app_name
