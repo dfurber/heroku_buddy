@@ -61,9 +61,10 @@ Sync your local database to your Heroku app's database:
 	$ h sync
 	
 
-## TODO items:
+## TODO items and issues:
 1. Run multiple rake tasks.
 2. Use dot env files for configuration.
+3. On Windows, the sync task fails because pg_restore doesn't ask for your password. When you run the command directly from command line it works fine.
 
 ## Contributing
 
