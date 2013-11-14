@@ -6,7 +6,7 @@ DOT_FILE_NAME = '.h_file'
 
 command = ARGV.shift
 
-config = { 'app_name' =DOT_FILE_NAME> nil }
+config = { 'app_name' => nil }
 if File.exists?(DOT_FILE_NAME) 
   contents = File.open(DOT_FILE_NAME).read
   if contents.size > 0
