@@ -49,7 +49,9 @@ end
 
 def migrate
   puts "Migrating the database on Heroku...\n"
+  exec_command_with_app_name 'heroku maintenance:start', app_name
   exec_command_with_app_name 'heroku run rake db:migrate', app_name
+  exec_command_with_app_name 'heroku maintenance:end', app_name
 end
 
 def seed

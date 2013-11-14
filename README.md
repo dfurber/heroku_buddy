@@ -26,11 +26,44 @@ The basic workflow is that you set your heroku application name like so:
 
 And then you can run the other commands without having to specify your app name
 
-Commit and deploy:
-h deploy MESSAGE   Runs git add, commit, push origin master, and push heroku
-h secrets          Shares your app secrets in config/secrets.yml with your Heroku app
-h log              Tails the Heroku log file plus the last 200 lines
-h console          Brings up the Rails console for your Heroku app
+Commit your current code and deploy to Heroku with a commit message:
+
+	$ h deploy MESSAGE   
+	
+The deploy runs git add, commit, push to origin, and push to Heroku.
+
+Share your applications secrets using the 'secretive' gem:
+	
+	$ h secrets
+
+Tail the Heroku log file plus the last 200 lines:
+
+	$ h log
+
+Bring up the Rails console for your Heroku app:
+
+	$ h console
+
+Run rake db:migrate in maintenance mode:
+
+	$ h migrate
+	
+Commit, push, deploy, and migrate in maintenance mode with a commit message:
+
+	$ h dm MESSAGE
+
+Run a rake task:
+
+	$ h rake namespace:task
+	
+Sync your local database to your Heroku app's database:
+
+	$ h sync
+	
+
+## TODO items:
+1. Run multiple rake tasks.
+2. Use dot env files for configuration.
 
 ## Contributing
 
