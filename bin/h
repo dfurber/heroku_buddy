@@ -16,7 +16,10 @@ else
 end
 
 app_name = config['app_name']
-git_branch = `git branch | sed -n '/\* /s///p'` || 'master'
+
+def git_branch
+  `git branch | sed -n '/\* /s///p'` || 'master'
+end
 
 def exec_command_with_app_name(cmd, app_name)
   cmd << " --app #{app_name}" if app_name
@@ -126,7 +129,7 @@ when 'rake'
   
 when 'sync'
   require 'yaml'
-  db_file = File.join `pwd`.chop, 'config', 'database.yml'
+  db_file = File.join 'config', 'database.yml'
   if File.exists?(db_file)
     db_config = YAML.load open(db_file).read
     dev_config = db_config['development']
@@ -142,9 +145,10 @@ when 'sync'
       puts "Prepping the remote database.\n"
       exec_command_with_app_name "heroku pgbackups:capture --expire", app_name
       puts "Retrieving the remote database.\n"
-      exec_command_with_app_name "curl -o #{filename} `heroku pgbackups:url --app #{app_name}`", app_name
+      url = `heroku pgbackups:url --app #{app_name}`
+      system "curl -o #{filename} '#{url}'"
       puts "Loading the data into your local database. You may be asked for a password.\n"
-      system "pg_restore --verbose --clean --no-acl --no-owner -h #{db_host} -U #{db_user} -d #{db_name} #{filename}"
+      system "pg_restore --verbose --clean --no-acl --no-owner --no-password -h #{db_host} -U #{db_user} -d #{db_name} #{filename}"
       puts "Deleting the downloaded database dump.\n"
       system "rm -f #{filename}"
     else
@@ -152,8 +156,7 @@ when 'sync'
     end
   else
     puts "Unable to locate your database.yml file."
-  end
-  
+  end  
 else
   msg = "This is the easy access script for common Heroku commands. \nThe following commands are available: \n"
   msg += "h app APP_NAME     Set the app name for subsequent h commands\n"
