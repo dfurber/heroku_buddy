@@ -54,9 +54,9 @@ end
 
 def migrate
   puts "Migrating the database on Heroku...\n"
-  exec_command_with_app_name 'heroku maintenance:start', app_name
+  exec_command_with_app_name 'heroku maintenance:on', app_name
   exec_command_with_app_name 'heroku run rake db:migrate', app_name
-  exec_command_with_app_name 'heroku maintenance:end', app_name
+  exec_command_with_app_name 'heroku maintenance:off', app_name
 end
 
 def seed
@@ -64,7 +64,7 @@ def seed
   exec_command_with_app_name 'heroku run rake db:seed', app_name
 end
 
-def share_secrets
+def share_secrets(app_name)
   puts "Sharing your app secrets with Heroku...\n"
   require 'rubygems'
   gem 'secretive'
@@ -96,21 +96,21 @@ when 'deploy'
   deploy
   
 when 'migrate'
-  migrate
+  migrate(app_name)
 
 when 'seed'
   seed
   
 when 'console'
   puts "Running the console on Heroku...\n"
-  exec_command_with_app_name 'heroku run console', app_name
+  exec_command_with_app_name 'heroku run rails console', app_name
 
 when 'log'
   puts "Tailing the log on Heroku...\n"
   exec_command_with_app_name 'heroku logs --source app --num 100 --tail', app_name
 
 when 'secrets'
-  share_secrets
+  share_secrets(app_name)
   
 when 'dm'
   puts "Running full deployment.\n"
