@@ -59,7 +59,7 @@ def migrate
   exec_command_with_app_name 'heroku maintenance:off', app_name
 end
 
-def seed
+def seed(app_name)
   puts "Seeding the database on Heroku...\n"
   exec_command_with_app_name 'heroku run rake db:seed', app_name
 end
@@ -89,27 +89,27 @@ def share_secrets(app_name)
 end
 
 case command
-when 'app'
+when 'app', 'a'
   set_app
   
-when 'deploy'
+when 'deploy', 'd'
   deploy
   
-when 'migrate'
+when 'migrate', 'm'
   migrate(app_name)
 
-when 'seed'
-  seed
+when 'seed', 's'
+  seed(app_name)
   
-when 'console'
+when 'console', 'c'
   puts "Running the console on Heroku...\n"
   exec_command_with_app_name 'heroku run rails console', app_name
 
-when 'log'
+when 'log', 'l'
   puts "Tailing the log on Heroku...\n"
   exec_command_with_app_name 'heroku logs --source app --num 100 --tail', app_name
 
-when 'secrets'
+when 'secrets', 's'
   share_secrets(app_name)
   
 when 'dm'
@@ -119,7 +119,7 @@ when 'dm'
   migrate
   exec_command_with_app_name 'heroku maintenance:off', app_name
 
-when 'rake'
+when 'rake', 'r'
   task = ARGV.shift
   if !task || task == ''
     puts "No rake task specified!\n"
