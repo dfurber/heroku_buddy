@@ -7,7 +7,7 @@ DOT_FILE_NAME = '.h_file'
 command = ARGV.shift
 
 config = { 'app_name' => nil }
-if File.exists?(DOT_FILE_NAME) 
+if File.exists?(DOT_FILE_NAME)
   contents = File.open(DOT_FILE_NAME).read
   if contents.size > 0
     config = JSON.parse contents
@@ -15,15 +15,20 @@ if File.exists?(DOT_FILE_NAME)
 else
 end
 
-app_name = config['app_name']
+APP_NAME = config['app_name']
 
 def git_branch
   `git branch | sed -n '/\* /s///p'` || 'master'
 end
 
-def exec_command_with_app_name(cmd, app_name)
-  cmd << " --app #{app_name}" if app_name
-  system cmd
+def heroku(command)
+  "GEM_HOME='' BUNDLE_GEMFILE='' GEM_PATH='' RUBYOPT='' /usr/bin/heroku #{command}"
+end
+
+def exec_command(cmd)
+  cmd = heroku cmd
+  cmd << " --app #{APP_NAME}" if APP_NAME
+  `#{cmd}`.chomp
 end
 
 def set_app
@@ -54,120 +59,127 @@ end
 
 def migrate
   puts "Migrating the database on Heroku...\n"
-  exec_command_with_app_name 'heroku maintenance:on', app_name
-  exec_command_with_app_name 'heroku run rake db:migrate', app_name
-  exec_command_with_app_name 'heroku maintenance:off', app_name
+  exec_command 'maintenance:on'
+  exec_command 'run rake db:migrate'
+  exec_command 'maintenance:off'
 end
 
-def seed(app_name)
+def seed
   puts "Seeding the database on Heroku...\n"
-  exec_command_with_app_name 'heroku run rake db:seed', app_name
+  exec_command 'run rake db:seed'
 end
 
-def share_secrets(app_name)
-  puts "Sharing your app secrets with Heroku...\n"
-  require 'rubygems'
-  gem 'secretive'
+def share_secrets
   require 'secretive'
-  
-  if app_name.blank?
+  puts "Sharing your app secrets with Heroku...\n"
+
+  unless APP_NAME
     msg = "You must specify an app name either with --app APP or by running "
     msg += "'h app APP' before running this command."
     puts msg
     exit
   end
-  
-  msg  = "This task will sync ALL ENVIRONMENT VARIABLES in the `#{app_name}` app "
+
+  msg  = "This task will sync ALL ENVIRONMENT VARIABLES in the `#{APP_NAME}` app "
   msg += "with the values defined in the `production` group of config/secrets.yml. "
   msg += "Are you sure you want to proceed? (y/n)"
   puts msg
 
   confirmation = $stdin.gets.chomp
   raise unless confirmation == "y"
+  # puts Secretive.for_heroku
 
-  exec "heroku config:add #{Secretive.for_heroku('production')} --app #{app_name}"
+  # currently complains that I have to add the heroku gem
+  exec_command "config:add #{Secretive.for_heroku}"
 end
 
 case command
-when 'app', 'a'
-  set_app
-  
-when 'deploy', 'd'
-  deploy
-  
-when 'migrate', 'm'
-  migrate(app_name)
+  when 'app', 'a'
+    set_app
 
-when 'seed', 's'
-  seed(app_name)
-  
-when 'console', 'c'
-  puts "Running the console on Heroku...\n"
-  exec_command_with_app_name 'heroku run rails console', app_name
+  when 'deploy', 'd'
+    deploy
 
-when 'log', 'l'
-  puts "Tailing the log on Heroku...\n"
-  exec_command_with_app_name 'heroku logs --source app --num 100 --tail', app_name
+  when 'migrate', 'm'
+    migrate
 
-when 'secrets', 's'
-  share_secrets(app_name)
-  
-when 'dm'
-  puts "Running full deployment.\n"
-  exec_command_with_app_name 'heroku maintenance:on', app_name
-  deploy
-  migrate
-  exec_command_with_app_name 'heroku maintenance:off', app_name
+  when 'seed', 's'
+    seed
 
-when 'rake', 'r'
-  task = ARGV.shift
-  if !task || task == ''
-    puts "No rake task specified!\n"
-  else
-    exec_command_with_app_name "heroku run rake #{task}", app_name
-  end
-  
-when 'sync'
-  require 'yaml'
-  db_file = File.join 'config', 'database.yml'
-  if File.exists?(db_file)
-    db_config = YAML.load open(db_file).read
-    dev_config = db_config['development']
-    if dev_config
-      db_name = dev_config['database']
-      db_host = dev_config['host'] || 'localhost'
-      db_user = dev_config['username']
-      db_pass = dev_config['password']
-      if !db_name or !db_host or !db_user or !db_pass
-        puts "Database configuration is incomplete.\n"
-      end
-      filename = 'latest.dump'
-      puts "Prepping the remote database.\n"
-      exec_command_with_app_name "heroku pgbackups:capture --expire", app_name
-      puts "Retrieving the remote database.\n"
-      url = `heroku pgbackups:url --app #{app_name}`
-      system "curl -o #{filename} '#{url}'"
-      puts "Loading the data into your local database. You may be asked for a password.\n"
-      system "pg_restore --verbose --clean --no-acl --no-owner --no-password -h #{db_host} -U #{db_user} -d #{db_name} #{filename}"
-      puts "Deleting the downloaded database dump.\n"
-      system "rm -f #{filename}"
+  when 'console', 'c'
+    puts "Running the console on Heroku...\n"
+    exec_command 'run rails console'
+
+  when 'log', 'l'
+    puts "Tailing the log on Heroku...\n"
+    exec_command 'logs --source app --num 100 --tail'
+
+  when 'secrets', 's'
+    share_secrets
+
+  when 'dm'
+    puts "Running full deployment.\n"
+    exec_command 'maintenance:on'
+    deploy
+    migrate
+    exec_command 'maintenance:off'
+
+  when 'rake', 'r'
+    task = ARGV.shift
+    if !task || task == ''
+      puts "No rake task specified!\n"
     else
-      puts "Found database.yml file but cannot find development config."
+      exec_command "run rake #{task}"
+    end
+
+  when 'sync'
+    require 'yaml'
+    db_file = File.join 'config', 'database.yml'
+    if File.exists?(db_file)
+      db_config = YAML.load open(db_file).read
+      dev_config = db_config['development']
+      if dev_config
+        db_name = dev_config['database']
+        db_host = dev_config['host'] || 'localhost'
+        db_user = dev_config['user']
+        db_pass = dev_config['password']
+        if !db_name or !db_host or !db_user or !db_pass
+          puts "Database configuration is incomplete.\n"
+          puts dev_config.inspect
+          exit
+        end
+
+        puts "Clearing out the existing database.\n"
+        `rake db:drop db:create`
+
+        filename = 'latest.dump'
+        puts "Prepping the remote database.\n"
+        exec_command "pgbackups:capture --expire"
+        puts "Retrieving the remote database.\n"
+        url = exec_command "pgbackups:url"
+        system "curl -o #{filename} '#{url}'"
+        puts "Loading the data into your local database. You may be asked for a password.\n"
+        system "pg_restore --verbose --clean --no-acl --no-owner --no-password -h #{db_host} -U #{db_user} -d #{db_name} #{filename}"
+        puts "Deleting the downloaded database dump.\n"
+        system "rm -f #{filename}"
+      else
+        puts "Found database.yml file but cannot find development config."
+      end
+    else
+      puts "Unable to locate your database.yml file."
     end
   else
-    puts "Unable to locate your database.yml file."
-  end  
-else
-  msg = "This is the easy access script for common Heroku commands. \nThe following commands are available: \n"
-  msg += "h app APP_NAME     Set the app name for subsequent h commands\n"
-  msg += "h deploy MESSAGE   Runs git add, commit, push origin master, and push heroku\n"
-  msg += "h secrets          Shares your app secrets in config/secrets.yml with your Heroku app\n"
-  msg += "h log              Tails the Heroku log file plus the last 200 lines\n"
-  msg += "h console          Brings up the Rails console for your Heroku app\n"
-  msg += "h migrate          Runs rake db:migrate on the Heroku database\n"
-  msg += "h seed             Runs rake db:seed on the Heroku database\n"
-  msg += "h dm MESSAGE       Runs deploy and migrate in maintenance mode\n"
-  msg += "h rake TASK        Runs rake task\n"
-  msg += "h sync             Syncs local database to fresh backup\n"
-  puts msg
+    msg = "This is the easy access script for common Heroku commands. \nThe following commands are available: \n"
+    msg += "h app APP_NAME     Set the app name for subsequent h commands\n"
+    msg += "h deploy MESSAGE   Runs git add, commit, push origin master, and push heroku\n"
+    msg += "h secrets          Shares your app secrets in config/secrets.yml with your Heroku app\n"
+    msg += "h log              Tails the Heroku log file plus the last 200 lines\n"
+    msg += "h console          Brings up the Rails console for your Heroku app\n"
+    msg += "h migrate          Runs rake db:migrate on the Heroku database\n"
+    msg += "h seed             Runs rake db:seed on the Heroku database\n"
+    msg += "h dm MESSAGE       Runs deploy and migrate in maintenance mode\n"
+    msg += "h rake TASK        Runs rake task\n"
+    msg += "h sync             Syncs local database to fresh backup\n"
+    puts msg
 end
+
